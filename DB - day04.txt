@@ -1,0 +1,419 @@
+Day4
+
+- product테이블에서 price가 4만원 이상인 데이터만 할인 상품
+
+피트니스하의(할인상품)
+
+select name as  할인상품
+from product
+where price >= 40000;
+
+
+-------------------------------------------------------------------------------0
+select num, type_a, type_b,
+if(price >= 40000, concat(name,'(할인상품)'),name) 할인상품
+from product;
+
+
+
+- 월별 (price * sale_amount) 매출 합계 출력
+24-10 date_format(date, '%y-%m')
+
+select date_format(register_date, '%y-%m') 월별,
+sum(price * sale_amount) 매출합계
+from product
+group by 월별
+order by 월별;
+
+-price가 가장 비싼 제품명, price 출력
+
+select name, price
+from product 
+union 
+select name, price 
+from product_non
+order by price desc
+limit 1;
+
+select name, price from product
+where price = (select max(price) from product);
+
+
+- product_non 테이블을 product와 같은 구조로 생성하여 register_date가 2024-
+09월 데이터만 이동 => 기존 테이블에서 복사 => 제거
+
+create table product_non like product;
+
+insert into product_non
+( select * from product where month(register_date) = '09');
+
+delete from product
+where month(register_date) = '09';
+
+select * from product union select * from product_non;
+select from~ 의 조회 대상되는 값이 서브쿼리의 결과일때 alias 필수
+- where 뒤에 붙는 서브쿼리 (조건으로서의 서브쿼리) alias가 없어야 한다.
+
+- 가장 많이 판매한 제품이름 출력 (buy 테이블 기준)
+select product_name, sum(amount) as sum
+from buy
+group by product_name
+having sum = (select max(
+p.total_sum) from
+(
+select sum(amount) as total_sum from buy
+group by product_name
+) as p
+);
+
+any연산자 / all연산자
+
+any 연산자 (최소값 기준)
+- 칼럼의 비교연산자 (값, 서브쿼리)
+- 여러개의 비교값 중 하나라도 만족하면 true반환
+> any : 최소값보다 크면
+>= any : 최소값보다 크거나 같다면
+< any : 최대값보다 작으면
+<= any : 최대값보다 작거나 같다면
+= any : in과 같음
+!= any : not in과 같음
+
+ all연산자 (최대값 기준)
+- 칼럼의 비교연산자 (값, 서브쿼리)
+- 여러개의 비교값 모두 만족하면 true반환
+> all : 최대값보다 크면
+>= all : 최대값보다 크거나 같다면
+< all : 최소값보다 작으면
+<= all : 최소값보다 작거나 같다면
+= all : 서브쿼리의 결과가 1건이면 괜찮지만 여러건이면 오류발생
+!= all : 서브쿼리의 결과가 1건이면 괜찮지만 여러건이면 오류발생
+-------------------------------------------------------------------------------
+
+select product_name, sum(amount) as sum
+from buy
+group by product_name
+having sum >= all
+(
+select sum(amount) as total_sum from buy
+group by product_name
+);
+
+-------------------------------------------------------------------------------
+
+트랜잭션 (transction)
+
+- 하나의 작업을 하기 위해 여러개의 쿼리가 쓰는 경우
+- 그 쿼리의 묶음
+- 하나의 트랜잭션에서 실행하는 모든 쿼리는 
+완료되어야 전체 작업이 완료되는 형태에서 사용
+- 만약 하나의 작업이라도 취소가 되면 
+모두가 원래대로 취소
+- 완료와 취소를 나중에 결정하는 개념
+- 임시 실행 개념
+- 데이터의 안정성을 확복하기 위해 트랜잭션을 사용
+
+- 완료 commit / rollback
+
+start transaction
+쿼리 1;
+쿼리 2;
+....
+commit / rollback
+
+create / alter / drop DDL 구문은
+transaction 대상이 아님
+
+start transaction;
+
+insert into buy(customer,product_name,price,amount)
+select '박장군', name, price, 10 from product where num = 9;
+
+rollback;
+
+start transaction;
+
+insert into buy(customer,product_name,price,amount)
+select '박장군', name, price, 10 from product where num = 9;
+
+commit;
+-------------------------------------------------------------------------------
+
+- product 신재품 추가
+티셔츠 / 니트 / 니트블라우스 / 30000/ 오늘날짜
+start transaction;
+
+insert into product(type_a, type_b, name, price, register_date)
+values
+('티셔츠','니트','니트블라우스',30000,'2025-09-30');
+
+-- 가장 최근에 insert된 num를 구해서 변수에 저장
+set @max_num := (select max(num) from product);
+
+-- 홍길동이 방금 추가한 제품 5장을 구매
+insert into buy(customer,product_name,price,amount)
+select '홍길동', name, price, 5 from product where num = @max_num;
+
+rollback;
+commit;
+
+-----------------------------------------------------------------------
+sql 변수사용 
+set @변수명 := 값;
+
+--------------------------------------------------------------------------
+DB 생성 school
+
+create database school;
+
+grant all privileges on school.* to 'mysqluser'@'localhost';
+
+exit
+-------------------------------------------------------------------------------
+create table student(
+std_num varchar(10) primary key,
+std_name varchar(20) not null,
+std_major varchar(20),
+std_term int,
+std_point int
+);
+
+create table course(
+co_code varchar(10) primary key,
+co_name varchar(20) not null,
+co_professer varchar(20),
+co_point int default 3,
+co_time int,
+co_timetable varchar(40)
+);
+
+create table attend(
+at_num int auto_increment primary key,
+at_std_num varchar(10),
+at_co_code varchar(12),
+at_year int,
+at_term int,
+at_mid int default 0,
+at_final int default 0,
+at_attend int default 0,
+at_hw int default 0,
+at_repetition varchar(1) default 'n',
+at_score varchar(4),
+-- 외래키 추가
+foreign key(at_std_num) references
+student(std_num),
+foreign key(at_co_code) references
+course(co_code)
+);
+
+-- alter table 사용하여 외래키 추가
+alter table attend add foreign key(at_std_num) references
+student(std_num);
+alter table attend add foreign key(at_co_code) references
+course(co_code);
+
+insert into student values
+('2019160123','전봉준','컴퓨터공학',2,64),
+('2019456001','강길동','디자인',3,60),
+('2020123001','강나래','화학공학',1,56),
+('2020123020','박철수','화학공학',1,57),
+('2020160001','강철수','컴퓨터공학',1,40),
+('2020160002','나영희','컴퓨터공학',1,60),
+('2022123001','강다운','화학공학',1,45),
+('2022123002','김수진','디자인',1,50),
+('2023160001','이영철','컴퓨터공학',1,55),
+('2023160002','최수지','디자인',1,65);
+
+
+insert into course values
+('2020ipc001','컴퓨터개론','유관순',2,2,'화1A,1B,2A,2B'),
+('2020ipc002','기초전기','이순신',3,4,'월1A,1B,2A목1A,1B,2A'),
+('2020msc001','대학수학기초','홍길동',3,3,'월1A,1B,2A수1A,1B,2A'),
+('2020msc002','프로그래밍일반','임꺽정',3,3,'월1A,1B,2A목1A,1B,2A'),
+('2021deg001','디자인기초','황희',2,3,'목1A,1B,2A,2B'),
+('2021deg002','색채이론','신사임당',3,2,'금1A,1B,2A,2B'),
+('2022che001','화학이론','김길동',3,2,'월1A,1B,수2A,2B');
+
+
+insert into attend(at_std_num, at_co_code) values
+('2020160001','2020msc001'),
+('2020160002','2020msc001'),
+('2023160002','2021deg001'),
+('2023160002','2021deg002'),
+('2019160123','2020msc002'),
+('2019456001','2020msc002'),
+('2020123001','2020ipc001'),
+('2020123020','2020ipc001'),
+('2020123020','2022che001'),
+('2020123001','2022che001'),
+('2019456001','2020ipc002'),
+('2019160123','2020ipc002'),
+('2022123001','2020msc002'),
+('2020160002','2020msc002'),
+('2019160123','2020msc001'),
+('2019456001','2020msc001'),
+('2023160002','2022che001'),
+('2022123001','2022che001'),
+('2023160001','2020msc002'),
+('2022123002','2021deg001'),
+('2022123002','2021deg002'),
+('2023160002','2020msc002');
+
+-------------------------------------------------------------------------------
+- 2025 2학기 중간
+1. at_year을 2025로 업데이트
+
+update attend
+set at_year = 2025;
+
+2. at_term 1~13까지는 1 / 나머지는 2
+
+update attend
+set at_term  = if(at_num <= 13 ,1, 2);
+
+3. 1학기만 점수 채우기
+at_mid=40 / final = 40 / attend=10 / hw=10 => 100점
+update attend
+set at_mid= 30, at_final = 36, at_attend=8 , at_hw=10
+where at_num in(1, 2, 3) ;
+update attend
+set at_mid= 31, at_final = 28, at_attend=7 , at_hw=9
+where at_num = 4 || at_num = 5 ;
+update attend
+set at_mid= 28, at_final = 37, at_attend=10 , at_hw=9
+where at_num = 6 || at_num = 7 || at_num = 8 ;
+update attend
+set at_mid= 34, at_final = 22, at_attend=7 , at_hw=7
+where at_num = 9 || at_num = 10 || at_num = 11 ;
+update attend
+set at_mid= 31, at_final = 33, at_attend=6 , at_hw=10
+where at_num = 12 || at_num = 13 ;
+
+
+update attend
+set at_mid= 38, at_final = 39, at_attend=7 , at_hw=10
+where at_num in(8,13) ;
+
+update attend
+set at_mid= 33, at_final = 39, at_attend=2 , at_hw=10
+where at_num = 1 ;
+
+update attend
+set at_mid= 30, at_final = 20, at_attend=6 , at_hw=6
+where at_num = 4 ;
+
+update attend
+set at_mid= 20, at_final = 10, at_attend=2 , at_hw=10
+where at_num = 3 ;
+
+
+4.at_score(1학기만)
+90점 이상 A / 80 이상 B / 70이상 C / 60 이상 D / 나머지 F
+
+update attend
+set at_score = 
+(
+case
+when (at_mid + at_final + at_attend + at_hw) >= 90 then 'A'
+when (at_mid + at_final + at_attend + at_hw) >= 80 then 'B'
+when (at_mid + at_final + at_attend + at_hw) >= 70 then 'C'
+when (at_mid + at_final + at_attend + at_hw) >= 60 then 'D'
+else 'F'
+end
+)
+where at_term = 1;
+
+5. 재수강여부(1학기만)
+- at_score F 이거나, at_attend가 2이하 이면 y
+
+update attend
+set at_repetition = if(at_score = 'F' or at_attend <= 2 , 'y', 'n')
+where at_term = 1;
+
+update attend
+set at_repetition = 'n'
+where at_term = 2;
+
+-------------------------------------------------------------------------------
+
+6. score별 인원수 집계 (null 제외, 1학기만) 
+select at_score, count(at_score)인원수
+from attend
+where at_term = 1
+group by at_score
+order by at_score;
+
+select at_score, count(at_score)인원수
+from attend
+group by at_score
+having at_score in not null
+order by at_score;
+
+7. 재수강 인원수 집계 
+select at_repetition 재수강, count(at_num) 인원수 from attend
+where at_repetition = 'y' and at_term = 1; 
+--------------------------------------------------------------------------------
+-- student와 course는 join 할 수 없다 (개체 엔티티)
+-- attend(관계 엔티티)를 join 해줘야 함
+-- join 시 칼럼명의 중복이 있을 수 있기 때문에 테이블에 alias를 꼭 달아준다. (일반적)
+
+
+inner join : inner 생략 가능
+
+
+select s.std_name, s.std_major, c.co_name from student s
+join attend a
+on s.std_num = a.at_std_num
+join course c
+on c.co_code = a.at_co_code
+where at_score = 'A';
+where at_repetition = 'y' ;
+
+select * from student s
+join attend a
+on s.std_num = a.at_std_num
+join course c
+on c.co_code = a.at_co_code
+where at_repetition = 'y' ;
+
+--------------------------------------------------------------------------------
+
+1. score A인 학생의 학번, 이름, 학점 출력
+
+select s.std_num, s.std_name, a.at_score from student s
+join attend a
+on s.std_num = a.at_std_num
+where a.at_score = 'A';
+
+2. 재수강자 명단
+학번, 이름, 재수강여부
+select s.std_num, s.std_name, a.at_repetition from student s
+join attend a
+on s.std_num = a.at_std_num
+where a.at_repetition = 'y';
+
+3. 재수강자 명단
+학번, 이름, 과목, 재수강여부
+select s.std_num, s.std_name, c.co_name ,a.at_repetition from student s
+join attend a
+on s.std_num = a.at_std_num
+join course c
+on c.co_code = a.at_co_code
+where a.at_repetition = 'y';
+
+4. F 학점 명단 출력
+학번, 이름, 학과
+
+select s.std_num, s.std_name, s.std_major from student s
+join attend a
+on s.std_num = a.at_std_num
+where a.at_score = 'F';
+
+5. A 학점 학생들의 성적
+학번, 이름, 과목, 성적 (at_mid + at_final + at_attend + at_hw)as 성적
+
+select s.std_num 학번, s.std_name 이름, c.co_name 과목, (at_mid + at_final + at_attend + at_hw) as 성적 from student s
+join attend a
+on s.std_num = a.at_std_num
+join course c
+on c.co_code = a.at_co_code
+where a.at_score = 'A';
