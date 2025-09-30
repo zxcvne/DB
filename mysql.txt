@@ -1,0 +1,21 @@
+mysql -u 계정이름 -p
+
+show databases;
+
+# database 생성, 삭제 
+create database testdb;
+drop database testdb;
+
+# table 생성 
+create table 테이블명(컬럼명, 데이터 타입);
+desc 테이블명; -- 확인
+
+# 데이터를 입력 
+insert into 테이블명 values (값);
+
+# 데이터를 조회 
+-- *(asterisk) : 모든 데이터 
+select * from 테이블명;
+-- 특정 데이터를 조회
+select 컬럼명 from 테이블명;
+

@@ -1,0 +1,165 @@
+DB - day01
+
+mysql -u root -p
+passwd :  ****
+
+끝 처리 :  ;
+주석 : /* */
+// 주석 아님
+
+root 계정 => DB전체를 관리하는 관리자 계정
+- 하위 user계정을 별도로 생성하여 사용
+- user 계정은 DB 생성 할 수 없고,
+root가 정해준 DB의 사용권한을 얻어야
+DB의 테이블을 생성 조작할 수 있음.
+
+- DB 생성 (test)
+create database test;
+show databases;
+
+- user 생성 => mysql(유저담당)
+-- user 담당 데이터베이스
+use mysql;
+
+-- user 생성 구문
+create user 'mysqluser'@'localhost'identified by 'mysql';
+
+-- user에게 DB의 권한 부여
+grant all privileges on test.* to 'mysqluser'@'localhost';
+
+-- with grant option (다른 유저에게 권한을 줄 수 있는 권한을 부여)
+grant all privileges on test.* to 'mysqluser'@'localhost' with grant
+option;
+
+-- 권한 적용
+flush privileges;
+
+---
+mysqluser로 재접속
+
+mysql -umysqluser -pmysql
+
+-- 데이터베이스 확인
+show databases;
+
+show tables; // 테이블 확인
+
+-- 작업을 하려면 반드시 DB를 선택
+-- user 데이터베이스명;
+use test;
+
+----------------------------------------
+데이터 타입
+
+숫자
+(정수)
+- BIT(m) : 1~64 BINARY 값을 저장
+- BOOL : TRUE(1), FALSE(0) == TINYINT
+- TINYINT(m) : 0~255 (-128 ~ 127)
+- SMALLINT(m) : 2BYTE 0 ~ 65536 (-32768 ~ 32767)
+- MEDIUMINT(m) : 3BYTE
+- INT(m) : 4BYTE => JAVA int와 동일
+- BIGINT(m) : 8BYTE =>  long 동일 // AI는 BIGINT
+(실수)
+(m 정수 + 소수점 전체 자리수, d 소수 자리수)
+- FLOAT(m,d) : 4BYTE =>  FLOAT(5,2) 123.22 // 전체 5자리 소수 2자리
+- DOUBLE(m,d) : 8BYTE 
+- DECIMAL(m,d) : 고정 소수점 표현
+
+문자
+- CHAR(m) : 고정길이 문자열 => CHAR(5) // 5글자 보다 적게 들어와도 5개로 사이즈 고정 (0~255)
+- VARCHAR(m) : 가변길이 문자열 => VARCHAR(m) // 배정된 숫자보다 작게 들어오면 그 사이즈에 맞춤 (0~65536)
+- TINYTEXT : 1BYTE => 가변길이
+- TEXT : 2BYTE => 가변길이
+- MEDIUMTEXT : 3BYTE
+- LONGTEXT : 4BYTE
+- BLOB : 바이너리 데이터 저장용 (미디어, 사진, 동영상, 음악)
+- 사이즈마다 있음. TINY, MEDIUM, LONG
+
+날짜
+- DATE : 날짜
+- DATETIME : 날짜 + 시간 => 가장 많이 씀
+- TIMESTAMP : 날짜 + 시간 => UPDATE 연산에 유리
+- YEAR : 연도만
+- TIME : 시간만
+
+------------------------------------------------------------------
+
+제약조건
+
+PK : primary key => 기본키 속성
+NN : not null => null 허용 안함
+AI : auto_increment => (자동증가 : 정수만 가능)
+UQ : unique => 중복 불가 // pk는 unique 자동 붙음
+B : binary (바이너리 값)
+UN : unsigned (부호 없음 +-)
+ZF : zero fill (숫자앞에 0으로 채우기 1 => 00001)
+G : generated (속성 자동생성)
+
+
+------------------------------------------------------------------
+
+테이블 생성 구문
+
+create table 테이블명(
+속성1 자료형 제약조건,
+속성2 자료형 제약조건,
+속성3 자료형 제약조건,
+primary key(속성명)
+);
+
+테이블명 : koreait
+id, name, tel, addr, (id)
+
+create table koreait(
+id int not null auto_increment,
+name varchar(20) not null,
+tel varchar(15),
+addr varchar(50),
+primary key(id)
+);
+
+- 테이블 확인
+show tables;
+
+- 테이블 구조 확인 
+desc 테이블명
+
+----------------------------------------------
+테이블 생성 => test
+num auto_increment
+name, phone, address, age, score
+
+create table test(
+num int auto_increment,
+name varchar(20) not null,
+phone varchar(15),
+address varchar(50),
+age int,
+score int,
+primary key(num)
+);
+
+--------------------------------------------
+ALTER : 테이블의 컬럼을 수정
+- add (추가)
+- drop (삭제)
+- modify (수정)
+- change (수정 : 컬럼명도 가능)
+
+/* db는 데이터의 디폴트 값이 전부 null 이다*/
+
+- score drop(삭제)
+alter table test drop score;
+
+- score  add(추가)
+alter table test add score int default 0;
+
+- score modify(수정)
+- 속성 수정할 때 원래 가지고 있던 속성들을  다 적어줘야 함.
+alter table test modify age int not null default 10;
+
+- score => number_score  change(수정)
+alter table test change score number_score int default 0;
+
+drop table 테이블명;

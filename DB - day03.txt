@@ -1,0 +1,475 @@
+DB - day03
+
+student table
+age가 null 인 값을 20으로 변경
+
+update student set age = 20
+where age is null;
+
+- grade 칼럼을 추가 (숫자, 기본값 1)
+
+alter table student add grade int default 1;
+
+if  / case ~ when ~ then
+
+if(조건식, 참, 거짓)
+if(조건식, 참, if(조건식, 참, if(조건식, 참, 거짓)))
+
+case
+when 조건식 then 값
+when 조건식 then 값
+when 조건식 then 값
+when 조건식 then 값
+else 값
+end;
+
+age가 20이면 신입생
+신입생만 출력
+
+select name 이름,
+age 나이,
+if(age = 21, '신입생','') 학년
+from student
+where age =21;
+
+- grade를 변경
+
+update student set grade =
+case
+when age= 20 then 1
+when age= 21 then 2
+when age= 22 then 3
+else 4
+end;
+
+insert into student(num, name, age, address, major) 
+values(11,'철이' ,20, '서울', '컴퓨터');
+
+select num, name, age, address, major, score, 
+if(grade = 1, '신입생', grade) 학년
+from student;
+
+----------------------------------------------------
+
+- if exists : 만약 있다면
+- if not exists : 만약 없다면
+
+create table if not exists test // test 테이블이 없다면 만들기
+
+졸업생 테이블(student_4)을 생성
+=> student와 같은 구조로 생성
+like
+create table 새로운 테이블명 like 원본 테이블;
+
+grade가 4인 학생만 이동(복사 후 삭제)
+
+create table if not exists student_4 like student;
+
+- 다른 테이블의 데이터를 조회하여 insert
+insert into student_4 
+( select * from student where grade = 4 );
+
+- 기존 student 테이블에서 grade가 4인 학생 삭제
+delete from student
+where grade = 4;
+
+- 모든 학생의 grade age를 하나씩 증가
+update student
+set age = age +1 , grade = grade+ 1;
+
+- 졸업
+update student_4
+set age = age +1 , grade = grade + 1;
+
+------------------------------------------------------
+
+성적 우수자 테이블 생성하기(student 테이블 복사)
+student_best
+
+score 90점 이상인 학생들만 student_best 복사
+
+create table student_best like student;
+
+insert into student_best
+( select * from student where score > 90);
+
+insert into student_best
+( select * from student_4 where score > 90); 
+
+-------------------------------------------------------
+SQL 내장함수	
+
+산술연산함수
+1. mod(값1, 값2) : 값1을 값2로 나눈 나머지
+-select mod(10,3); // 1
+2. round(값, 자리수) : 반올림
+- select round(3.1415, 2); // 3.14
+3. ceil(값) 올림 / floor(값) 버림 : 자리수 없음
+- select ceil(3.14); // 4
+4. sqrt(값) : 제곱근 / pow(num1, n) : numⁿ
+
+문자열함수
+1. concat(str, str2) : 두 문자열을 연결
+ + 연결 연산자가 없음. 반드시 concat으로 연결 // select concat(grade, "학년") as grade from student;
+2. length(str) : 문자열의 길이
+(영어:1, 한글:2)
+3. char_length(str) : 한글자로 인식
+4. substr(str,start,count): 문자열에서 시작위치 부터 개수만큼 추출
+- select substr('abcdefg',1,4) // abcd // *시작이 1번지부터임
+5. substring
+6. left(str, count) : 왼쪽에서 부터 count만큼 추출
+7. right(str, count) : 오른쪽에서 부터 count만큼 추출
+8. mid(str, start ,count) : start에서 부터 count만큼 추출
+9. replace(str, old, new) : 문자열에서 old 데이터를 찾아 new 문자로 치환
+// 만약 같은 문자가 여려개면 모두 new로 치환
+10. insert(str,위치, 길이, 삽입할 문자) : 문자에서 위치의 길이만큼 지우고, 삽입할 문자를 삽입
+- ucase / lcase : 대소문자 변환 // select ucase('abcd');select lcase('DSFHAS');
+11. space(count) : 개수만큼 공백 추가 // select concat('abc', space(2) ,'def')
+12. trim(str) : 공백제거 /ltrim / rtrime
+- trim(both '값' from 'str') // select trim(both '-' from '+---+abcd+---');
+(both: 양쪽 / leading: 앞 / trailing : 뒤) select trim(leading '-' from '----abcd----');
+13. lpad(str, 총길이, 채울문자) / rpad : 앞 / 뒤쪽에 총길이만큼 공백을 삽입, 공백에 채울문자를 채우기
+select lpad('abcd', 10, '-'); // abcd를 포함한 전체 글자 10 // ------abcd
+14. repeat(str, 개수) : 개수만큼 문자열 반복 // select repeat('-', 10);
+15. reverse(str) : 문자 거꾸로 출력 // select reverse('abcd');
+
+날짜 함수
+- adddate / subdate : 날짜를 기준으로 ~후, ~전의 날짜를 표시
+adddate(date, interval 5 day)
+year, month, day, hort, minute, second 가능
+
+select adddate('2025-9-29', interval 5 day);
+select subdate('2025-9-29', interval 5 day);
+select adddate('2025-9-29', interval 5 month);
+
+## 오늘 날짜와 시간 출력
+now(), curdate(), curtime(), sysdate()
+-year(date), month, day, hour, minute,
+second : 시분초년월일 추출
+-date(date) / time(date) : 날짜만 / 시간만 추출
+- datediff(date1, date2) : date2에서 date1까지 남은 날짜 (시간(timediff)도 가능)
+select datediff(curdate(), '2026-02-19');
+- dayofweek(date) : 요일번호 (일 = 1...)
+- dayofyear(date) : 1년중 몇번째 일인지 확인
+- last_day(date) : 해당 월의 마지막 일
+- monthname(date) : 월을 영어로
+- time_to_sec(time) : 시간을 초단위로 변환
+
+
+논리 함수
+- if(조건식, 참, 거짓);
+- if(조건식, 참, if(조건식, 참, 거짓))
+=> 다중 if
+- case when then
+case
+when 조건식 then 값
+when 조건식 then 값
+when 조건식 then 값
+else 값  // 생략가능 
+end;
+
+정보 함수
+- user(), current_user(), session_user()
+=> 현재 사용자
+- database(), schema() : 현재 사용중인 DB
+
+----------------------------------------------------------
+
+student 테이블에서 처리
+
+student에 인원수 추가
+insert into student(num,name,age,address,major,score)
+values
+(14,'영이',20,'수원','영어',90),
+(15,'짱아',20,'안산','영어',50),
+(16,'철수',20,'인천','영어',80),
+(17,'훈이',20,'수원','영어',60),
+(18,'수지',20,'서울','영어',70);
+
+insert into student(num,name,age,address,major,score)
+values
+(19,'뽀삐',20,'서울','국어',70);
+(20,'이순신',20,'서울','국어',70);
+
+1. 등급(Ranking) 칼럼 추가
+
+alter table student add ranking varchar(1);
+
+2. score에 따라 ranking 추가
+80이상 A, 60이상 B, 나머지 C
+
+update student set ranking = 
+case
+when score >= 80 then 'A'
+when score >= 60 then 'B'
+else 'C'
+end;
+
+3. ranking별 인원수 집계
+abc순으로
+
+select ranking, count(ranking) as 인원수 
+from student
+group by ranking
+order by ranking;
+
+4. name의 두번째 글자를 O로 표시 (전체 데이터 출력)
+
+select 
+num 번호,
+if(char_length(name) > 1 ,insert(name, 2,1,'O'), name) 이름,
+age 나이 , address 주소 , major 학과 , score 점수 , grade 학년 , ranking 등급
+from student;
+
+5. 성적이 1등부터 3등까지 출력
+
+select name, score, ranking from student
+order by score desc
+limit 3;
+
+6. major인원이 3명보다 적은 학과를 출력
+
+select major, count(major) c
+from student
+group by major
+having c < 3
+order by major;
+
+--------------------------------------------------------------------
+
+shop 데이터베이스 생성
+=> root가 db를 생성후 mysqlsuser에게 권한 부여
+
+mysql user로 재접속
+
+
+1. table 2개 생성 product, buy
+
+
+product
+num(pk, ai) / type_a (상의, 하의, 아우터) 
+/ type_b(여름, 겨울) / name(문자) / price (default 0)
+/ amount(재고 ,deafault 100) / sale_amount(팔린, deafault 0) 
+/ register_date(날짜)
+
+buy
+num (pk, ai) / customer(문자)
+product_name(문자) / price(default 0)
+amount(숫자 0)/
+buy_date(날짜, 기본값 현재날짜)
+
+
+grant all privileges on shop.* to 'mysqluser'@'localhost';
+grant all privileges on shop.* to 'mysqluser'@'localhost' with grant
+option;
+flush privileges;
+
+show databases;
+use shop
+
+create table product
+(
+num int auto_increment primary key,
+type_a varchar(20),
+type_b varchar(20),
+name varchar(50),
+price int default 0,
+amount int default 100,
+sale_amount int default 0,
+register_date date
+);
+
+alter table product modify type_a varchar(50) not null;
+alter table product modify type_b varchar(50) not null;
+alter table product modify register_date datetime;
+
+create table buy
+( 
+num int auto_increment primary key,
+customer varchar(20),
+product_name varchar(50),
+price int default 0,
+amount int default 0,
+buy_date datetime default now()
+);
+
+-- product에 값을 추가
+
+insert into product(type_a, type_b, name, price, amount, sale_amount, register_date) values
+('티셔츠','긴소매','폴라 티셔츠',15000,34,100,'2024-10-15'),
+('티셔츠','반소매','순면라운드 반팔티',15900,10,153,'2024-09-15'),
+('티셔츠','민소매','에이 나시',9000,33,33,'2024-09-10'),
+('패션운동복','트레이닝상의','피트니스상의',30000,34,55,'2024-12-05'),
+('패션운동복','트레이닝하의','피트니스하의',50000,55,34,'2024-12-06'),
+('패션운동복','트레이닝세트','피트니스상하의',90000,55,34,'2024-12-07'),
+('아우터','재킷','양면 롱 후리스 자켓',23300,100,42,'2024-11-05'),
+('아우터','코트','양털 겨울 코트',50000,50,30,'2024-10-31'),
+('아우터','코트','트렌치 코트',40000,50,30,'2024-10-31'),
+('아우터','패딩','롱 패팅 점퍼',47400,10,45,'2024-11-01');
+
+------------------------------------------------------
+
+- 홍길동이 폴라 티셔츠 5개 구매
+- buy 테이블에 insert
+
+insert into buy(customer, product_name, price,amount)
+values 
+('홍길동', '폴라 티셔츠', 15000, 5);
+
+insert into student_4 
+( select * from student where grade = 4 );
+
+- 홍길순이 순면라운드 반팔티 3장 구매
+(2번 제품을 3장 구매) - 조회
+
+-- 하나의 query안에 다른 쿼리가 추가 된 구문을 ( ex)insert절 에 select 절이 들어가는) subquery라고 한다.
+
+insert into buy(customer, product_name, price,amount)
+select '김종국', name, price, 5 from product
+where num = 3;
+
+insert into buy(customer, product_name, price,amount)
+select '유재석', name, price, 1 from product
+where num = 6;
+
+insert into buy(customer, product_name, price,amount)
+select '이순신', name, price, 1 from product
+where num = 8;
+
+insert into buy(customer, product_name, price,amount)
+select '을지문덕', name, price, 1 from product
+where num = 10 || num = 2 ;
+
+insert into buy(customer, product_name, price,amount)
+select '신짱구', name, price, 2 from product
+where num = 8;
+
+-----------------------------------------------------------------------
+
+buy 테이블에서 제품별 판매수량 조회
+
+- 제품별 판매수량
+
+select product_name, sum(amount) sum
+from buy
+group by product_name
+order by sum desc;
+
+- 제품별 판매금액 조회
+
+select product_name, 
+sum(price * amount) sum
+from buy
+group by product_name
+order by sum desc;
+
+- total 필드를 buy 테이블에 추가
+추가 칼럼은 항상 가장 마지막에 추가
+total은 amount 뒤에 추가
+가장 마지막에 after amount
+
+alter table buy add total int default 0 after amount;
+update buy
+set total = price * amount;
+
+// alter table buy modify total int default (price * amount); 값 업데이트 하면 작동안함
+alter table buy drop total;
+
+--------------------------------------------------------------
+
+칼럼 생성시 계산을 해서 생성
+(generated columns)
+- stored : 값이 저장되는 방법
+(데이터가 입력되거나, 수정될 때 해당 칼럼의
+값이 같이 갱신)
+- virtual : 저장은 하지 않고 정의만
+(해당 칼럼을 읽으려고 실도할 때 계산을 통해 보여줌)
+
+alter table buy add total int generated 
+always as (price * amount) stored after
+amount;
+
+update buy set amount = 10
+where num = 23;
+
+- 전체 총 판매수량과 총 매출 내역 출력
+
+select sum(amount) as '총 판매수량',
+sum(total) as '총 매출내역'
+from buy;
+
+-------------------------------------------------------------------
+
+product 테이블에서
+
+- 1. 최신 상품순으로 정렬
+select * from product
+order by register_date desc;
+
+- 2. type_a별로 상품 종류 개수와 price 합계
+select type_a 상품,
+count(type_a),
+sum(price)
+from product
+group by type_a;
+
+- 3. price가 30000원 이상인 제품은 할인 상품에 해당
+할인 상품만 출력
+select name as 할인상품,
+price 원가
+from product
+where price >= 30000;
+
+- 4. 할인 가격 제품의 10% 할인 
+// 할인 상품의 이름과 할인가격 출력
+// 할인 가격 (3만원 이상인 제품만 대상으로 10% 할인)
+// 할인상품명, 정상가, 할인가
+
+select name as 할인상품,
+price 정상가,
+if(price >= 30000,floor(price * 0.9),price) as 할인가
+from product
+where price >= 30000;
+
+- 5. 11월에 입고된 상품만 출력
+select * from product
+where register_date like '%-11-%'
+-- month(register_date) = 11;
+
+- 6. 월별 가격합계
+select month(register_date) 월별,
+sum(price) 가격합계
+from product
+group by 월별
+order by 월별;
+
+insert into product(type_a, type_b, name, price, amount, sale_amount, register_date) values
+('티셔츠','긴소매','반폴라 티셔츠',20000,0,100,'2025-09-15'),
+('티셔츠','반소매','라운드 반팔티',12000,0,100,'2025-08-15'),
+('티셔츠','민소매','나시',5000,0,100,'2025-07-10');
+
+-7 . 날짜를 년 - 월 그룹으로
+select date_format(register_date,"%y - %m") 월별,
+sum(price) 가격합계
+from product
+group by 월별
+order by 월별;
+
+-8 . 날짜를 년-월 그룹으로 가장 sum 금액이 큰 값 1개만 출력
+select date_format(register_date,"%y - %m") 월별,
+sum(price) 가격합계
+from product
+group by 월별
+order by 가격합계 desc
+limit 1;
+
+-- max로 => 집계함수는 중복 안됨
+select max(sum(price)) as m from product
+group by date_format(register_date,"%y - %m") ;
+
+select max(p.m) from (
+select sum(price) m from product 
+group by date_format(register_date,"%y - %m" )) p ;
+
+*서브쿼리는 반드시 alias 필요
+
