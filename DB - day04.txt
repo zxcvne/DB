@@ -386,24 +386,27 @@ where a.at_score = 'A';
 
 2. 재수강자 명단
 학번, 이름, 재수강여부
-select s.std_num, s.std_name, a.at_repetition from student s
+select s.std_num, s.std_name, a.at_repetition 
+from student s
 join attend a
 on s.std_num = a.at_std_num
 where a.at_repetition = 'y';
 
 3. 재수강자 명단
 학번, 이름, 과목, 재수강여부
-select s.std_num, s.std_name, c.co_name ,a.at_repetition from student s
+select s.std_num, s.std_name, c.co_name ,a.at_repetition 
+from student s
 join attend a
 on s.std_num = a.at_std_num
 join course c
 on c.co_code = a.at_co_code
-where a.at_repetition = 'y';
+where a.at_repetition = 'y'; and a.at_term = 1;
 
 4. F 학점 명단 출력
 학번, 이름, 학과
 
-select s.std_num, s.std_name, s.std_major from student s
+select s.std_num, s.std_name, s.std_major 
+from student s
 join attend a
 on s.std_num = a.at_std_num
 where a.at_score = 'F';
@@ -411,7 +414,11 @@ where a.at_score = 'F';
 5. A 학점 학생들의 성적
 학번, 이름, 과목, 성적 (at_mid + at_final + at_attend + at_hw)as 성적
 
-select s.std_num 학번, s.std_name 이름, c.co_name 과목, (at_mid + at_final + at_attend + at_hw) as 성적 from student s
+- row의 합을 구할때 :  +
+- col의 합을 구할때 : 집계함수 sum()
+
+select s.std_num 학번, s.std_name 이름, c.co_name 과목, (at_mid + at_final + at_attend + at_hw) as 성적 
+from student s
 join attend a
 on s.std_num = a.at_std_num
 join course c

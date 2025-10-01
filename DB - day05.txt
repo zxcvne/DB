@@ -1,0 +1,625 @@
+Day5
+
+F 학점 학생명단 (학번, 이름, 학과)
+
+select s.std_num, s.std_name , s.std_major
+from student s
+join attend a
+on s.std_num = a.at_std_num
+where at_term = 1 and a.at_score = 'F';
+
+-- 서브쿼리 형태로 변경
+
+select std_num, std_name, std_major
+from student
+where std_num in (
+select at_std_num 
+from attend
+where at_score ='F' and at_term = 1
+);
+
+select std_num, std_name, std_major
+from student
+where std_num = any (
+select at_std_num 
+from attend
+where at_score ='F' and at_term = 1
+);
+
+----------------------------------------------
+
+A학점 명단 (학번, 이름, 과목)
+select s.std_num 학번, s.std_name 이름, c.co_name 과목,  
+from student s
+join attend a
+on s.std_num = a.at_std_num
+join course c
+on c.co_code = a.at_co_code
+where a.at_term = 1 and a.at_score = 'A';
+
+-- subquery
+-- 조회속도 향상
+
+select 
+	s.std_num, s.std_name, c.co_name
+from student s
+join (
+	select at_std_num, at_co_code
+	from attend 
+	where at_term = 1 and at_score = 'A'
+) a
+on s.std_num = a.at_std_num
+join (
+	select co_code, co_name from course
+) c
+on c.co_code = a.at_co_code; 
+
+------------------------------------------------------------------
+
+A학점 학생들의 성적
+(학번 이름 과목 성적 as 성적)
+
+select s.std_num 학번, s.std_name 이름, c.co_name 과목, 
+(at_mid + at_final + at_attend + at_hw) as 성적 
+from student s
+join attend a
+on s.std_num = a.at_std_num
+join course c
+on c.co_code = a.at_co_code
+where a.at_term = 1 and a.at_score = 'A';
+
+
+---- 서브쿼리 형태로
+
+
+select s.std_num 학번, s.std_name 이름, c.co_name 과목, 
+(a.at_mid + a.at_final + a.at_attend + a.at_hw) as 성적 
+from student s
+join (
+select * from attend 
+where at_term = 1 and at_score = 'A'
+) a
+on s.std_num = a.at_std_num
+join (
+select co_code, co_name from course
+) c
+on c.co_code = a.at_co_code
+where a.at_term = 1 and a.at_score = 'A';
+
+----------------------------------------------------------------------
+
+c.* : c 테이블 전체
+-- select s.std_num 학번, s.std_name 이름, c.*, 
+-- (a.at_mid + a.at_final + a.at_attend + a.at_hw) as 성적 
+-- from student s
+-- join (
+-- select * from attend 
+-- where at_term = 1 and at_score = 'A'
+-- ) a
+-- on s.std_num = a.at_std_num
+-- join (
+-- select co_code, co_name from course
+-- ) c
+-- on c.co_code = a.at_co_code
+-- where a.at_term = 1 and a.at_score = 'A';
+
+---------------------------------------------------------------------
+
+- 학점별로 중간, 기말의 평균 집계
+- 1학기만, null 제외
+
+select at_score 학점, avg(at_mid) 중간평균 , avg(at_final) 기말평균
+from attend
+where at_term = 1 and at_score is not null
+group by 학점
+order by 학점;
+
+select a.at_score 학점, floor(a.m) 중간평균 , floor(a.f) 기말평균
+from (select at_score, at_term, avg(at_mid) m , avg(at_final) f
+from attend
+where at_term = 1 and at_score is not null
+group by at_score
+) a
+order by a.at_score;
+
+내 테이블에서 내테이블의 다른 조건의 값만을 참조 가능. self join
+
+--------------------------------------------------------------------
+
+1. 학번이 2020으로 시작하는 학생들의 학번, 이름, 학과만 출력
+
+select s.std_num, s.std_name, s.std_major 
+from (select std_num, std_name, std_major from student) s
+where s.std_num like '2020%';
+
+2. 프로그래밍 일반 과목을 듣는 학생 명단 출력
+(학번, 이름, 학과)
+1]
+select s.std_num, s.std_name, s.std_major
+from student s
+join (
+select at_std_num, at_co_code 
+from attend
+) a
+on s.std_num = a. at_std_num
+join (
+select co_code, co_name from course
+) c
+on c.co_code = a.at_co_code
+where c.co_name = '프로그래밍일반';
+
+2]
+select std_num, std_name, std_major
+from student
+where std_num in (
+select at_std_num from attend
+  join course on at_co_code = co_code
+  where co_name = '프로그래밍일반'
+);
+ 
+3. 홍길동 교수가 강의하는 과목을 듣는 학생 명단
+(학번, 이름, 학과, 수강과목, 담당교수)
+
+select s.std_num, s.std_name, s.std_major,
+c.co_name, c.co_professer
+from student s
+join (
+select at_std_num, at_co_code from attend
+) a
+on s.std_num = a.at_std_num
+join 
+(
+select co_name, co_code, co_professer 
+from course
+) c
+on c.co_code = a.at_co_code
+where c.co_professer = '홍길동';
+
+-------------------------------------------------------------------
+-- CTE (common table expression) 가상테이블
+with 가상테이블을 생성하는 구문
+
+with 가상테이블명 as (구문...), 가상테이블명2 as (...) 
+select 칼럼 from 가상테이블명
+where 조건; 
+-------------------------------------------------------------------
+with student_base as (
+select std_num, std_name, std_major
+from student
+),
+course_base as (
+select co_code, co_professer from course
+where co_professer = '홍길동'
+)
+select s.* , c.co_professer
+from student_base s
+join attend a on a.at_std_num = s.std_num
+join course_base c on c.co_code = a.at_co_code;
+
+4. 전봉준(2019160123)이 획득한 학점(co_point) 합계
+- 2학기는 미포함, 미이수학점 제외
+
+select s.std_name, sum(c.co_point) '획득한 학점'
+from student s
+join (
+select at_std_num, at_co_code, at_term, at_repetition 
+from attend
+where at_term = 1 and at_repetition = 'n'
+) a
+on s.std_num = a.at_std_num
+join (
+select co_code, co_point from course
+) c
+on c.co_code = a.at_co_code
+group by s.std_name
+having s.std_name = '전봉준';
+ 
+5. 재수강자 점수(중간+기말+출석+과제) 합계
+(학번, 이름, 학과, 과목, 점수합계)
+
+select s.std_num, s.std_name, s.std_major, c.co_code,
+(a.at_mid + a.at_final + a.at_attend + a.at_hw) 점수합계
+from student s
+join (
+select * from attend
+where at_repetition = 'y'
+) a
+on s.std_num = a.at_std_num
+join (
+select co_code from course
+) c
+on c.co_code = a.at_co_code;
+
+---------------------------------------------------------------------
+
+- left(inner) join
+- 수강을 하고 있지 않는 학생 명단(휴학생 명단)
+
+insert into student values
+('2024160001','김지은','컴퓨터공학',1,20),
+('2024160002','박은지','디자인',1,22);
+
+select s.* 
+from student s
+left join attend a
+on s.std_num = a.at_std_num
+where a.at_std_num is null;
+
+- 왼쪽 테이블에서 조건에 일치하는 것만
+select * 
+from student s
+left join attend a
+on s.std_num = a.at_std_num;
+
+- course 테이블에 과목을 2개 추가
+  수강자가 없는 과목 출력
+
+insert into course values
+('2023ipc003','데이터베이스개론','이순자',3,4,'월1A,1B,2A,2B'),
+('2023ipc004','mysql실습','이순자',3,2,'월1A,목1A');
+
+- 오른쪽 테이블에서 조건에 일치하는 것만
+select c.* from attend a
+right join course c
+on c.co_code = a.at_co_code
+where a.at_co_code is null;
+
+select * from student
+full outer join attend
+on std_num = at_std_num;
+
+--------------------------------------------------------------------------
+과목별 중간, 기말, 출석, 과제의 합계
+
+select 
+c.co_name,
+sum(a.at_mid) 중간,
+sum(a.at_final) 기말,
+sum(a.at_attend) 출석,
+sum(a.at_hw) 과제
+from course c
+join attend a
+on a.at_co_code = c.co_code
+where a.at_term = 1
+group by c.co_name;
+
+rollup : 그룹별로 합계를 한번에 구할 때 사용
+with rollup : 자신의 집계함수로 rollup됨 // sum()이면 합
+group by 그룹명 with rollup
+- having을 인지 못함.
+- order by는 가능
+- ifnull(값, 값2) : 값이 null이면 다른값을 출력 // oracle에서는 NVL
+
+select 
+ifnull(c.co_name, '평균') 과목,
+round(avg(a.at_mid),1) 중간,
+round(avg(a.at_final),1) 기말,
+round(avg(a.at_attend),1) 출석,
+round(avg(a.at_hw),1) 과제
+from course c
+join attend a
+on a.at_co_code = c.co_code
+where a.at_term = 1
+group by c.co_name with rollup
+order by grouping(co_name);
+------------------------------------------------------------
+rank() : 순위
+
+rank() over (order by 정렬칼럼 desc) as 칼럼명
+=> 값이 같다면 같은 순위를 가짐 다음 순위는 건너뜀.
+
+dense_rank() over (order by 정렬칼럼 desc) as 칼럼명
+=> 값이 같다면 같은 순위를 가짐 다음 순위를 이어감.
+
+attend 테이블에서 at_final을 기준으로 순위를 작성
+1학기만 
+
+select at_std_num, at_final,
+rank() over (order by at_final desc) as ranking
+from attend
+where at_term = 1;
+
+select at_std_num, at_final, 
+dense_rank() over (order by at_final desc) as ranking
+from attend
+where at_term = 1;
+
+select at_std_num, (at_mid + at_final + at_attend + at_hw) total, 
+dense_rank() over (order by (at_mid + at_final + at_attend + at_hw) desc) as ranking
+from attend
+where at_term = 1;
+
+*sqld 자주 나옴: rank over, with rollup, nvl
+
+--------------------------------------------------------------------
+
+기말 성적 기준으로 5등까지 장학금 대상
+
+select std_name 장학생,
+rank() over (order by a.at_final desc) as 등수
+from student s
+join attend a
+on a.at_std_num = s.std_num
+where a.at_term = 1
+limit 5;
+
+select std_name, at_std_num, at_final, ranking
+from (
+select at_std_num, at_final,
+rank() over (order by at_final desc) as ranking
+from attend
+where at_term = 1
+) as r
+join student s
+on r.at_std_num = s.std_num
+where r.ranking <= 5;
+
+-----------------------------------------------------------------------
+
+full outer join은 mysql 지원 안함
+left join + right join => full outer join
+union (중복값 제거) / union all (중복값을 제거 안함)
+
+- student, attend full outer join
+
+select * from student
+left join attend on at_std_num = std_num
+union
+select * from student
+right join attend on at_std_num = std_num;
+
+- student, attend, course full outer join
+
+select * from student
+left join attend on at_std_num = std_num
+left join course on at_co_code = co_code
+union
+select * from student
+right join attend on at_std_num = std_num
+right join course on at_co_code = co_code;
+
+select * from student
+left join attend on at_std_num = std_num
+left join course on at_co_code = co_code
+where at_std_num is null
+union
+select * from student
+right join attend on at_std_num = std_num
+right join course on at_co_code = co_code
+where at_std_num is null;
+
+select * from student s
+join attend a
+on a.at_std_num = s.std_num
+join course c
+on c.co_code = a.at_co_code
+;
+---------------------------------------------------------------
+-college DB 생성
+-mysqluser 에 권한 부여
+
+create database college;
+grant all privileges on college.* to 'mysqluser'@'localhost';
+
+create table student(
+st_num int primary key,
+st_name varchar(20) not null,
+st_term int default 1,
+st_point int default 0
+);
+
+create table subject(
+su_num int auto_increment primary key,
+su_code varchar(20) not null,
+su_title varchar(45) not null,
+su_point int not null default 0,
+su_time int not null default 0
+);
+
+create table professor(
+pr_num int primary key,
+pr_name varchar(20) not null,
+pr_age int not null,
+pr_room varchar(45),
+pr_state varchar(45) default '재직',
+pr_position varchar(45) default '조교수'
+);
+
+create table course(
+co_num int auto_increment primary key,
+co_pr_num int not null,
+co_su_num int not null,
+co_term int default 1,
+co_year int,
+co_timetable varchar(100),
+foreign key(co_pr_num) references
+professor(pr_num),
+foreign key(co_su_num) references
+subject(su_num)
+);
+
+create table attend(
+at_num int auto_increment primary key,
+at_st_num int not null,
+at_co_num int not null,
+at_mid int default 0,
+at_final int default 0,
+at_attend int default 0,
+at_hw int default 0,
+at_score varchar(5),
+at_pass varchar(1),
+at_repetition varchar(1) default 'n',
+foreign key(at_st_num) references
+student(st_num),
+foreign key(at_co_num) references
+course(co_num)
+);
+
+create table guide (
+gu_num int auto_increment primary key,
+gu_pr_num int not null,
+gu_st_num int not null,
+gu_year int ,
+foreign key(gu_pr_num) references
+professor(pr_num),
+foreign key(gu_st_num) references
+student(st_num)
+);
+insert into student(st_num, st_name,st_term) values
+(2020123001,'김영철',1),
+(2020123002,'나영희',1),
+(2020160001,'강철수',2),
+(2020160002,'박철수',2),
+(2020456001,'강군',2);
+
+insert into subject values
+(1,'msc001','대학수학',3,3),
+(2,'com001','컴퓨터개론',2,2),
+(3,'com002','운영체제',3,3),
+(4,'abc001','디자인이론',2,2),
+(5,'abc002','생활영어',2,3);
+
+insert into professor values
+(2005789001, '홍길동',60,'B동302호','재직','정교수'),
+(2006456001, '박영실',65,'B동301호','안식년','정교수'),
+(2010160001, '강길동',55,'A동202호','재직','조교수'),
+(2010160002, '김길순',50,'A동301호','재직','조교수'),
+(2011123001, '이순신',55,'A동203호','재직','정교수');
+
+
+insert into course(co_pr_num, co_su_num, co_term, co_year, co_timetable) values
+(2005789001,1,1,2002,'월2a/2b/3a/3b/4a/4b'),
+(2010160002,1,2,2002,'월2a/2b/3a/3b/4a/4b'),
+(2010160001,2,1,2002,'화1a/1b/2a/2b'),
+(2010160001,3,1,2002,'목2a/2b/3a/3b/4a/4b'),
+(2011123001,4,2,2002,'화1a/1b/2a/2b'),
+(2011123001,5,2,2002,'수1a/1b/2a/2b');
+
+
+insert into guide(gu_pr_num, gu_st_num, gu_year) values
+(2010160001,2020160001,2023),
+(2010160001,2020160002,2023),
+(2011123001,2020123001,2023),
+(2011123001,2020123002,2023),
+(2010160002,2020456001,2023);
+
+insert into attend(at_st_num, at_co_num) values
+(2020123001,1),
+(2020123001,2),
+(2020123001,3),
+(2020123001,4),
+(2020123001,5),
+(2020123001,6),
+(2020123002,1),
+(2020123002,2),
+(2020123002,3),
+(2020123002,4),
+(2020123002,5),
+(2020160001,1),
+(2020160001,2),
+(2020160001,3),
+(2020160001,4),
+(2020160001,5),
+(2020160001,6),
+(2020160002,1),
+(2020160002,2),
+(2020160002,3),
+(2020160002,4),
+(2020160002,5),
+(2020160002,6),
+(2020456001,1),
+(2020456001,2),
+(2020456001,3),
+(2020456001,4),
+(2020456001,5);
+
+select * from student;
+select * from subject;
+select * from professor;
+select * from course;
+select * from guide;
+select * from attend;
+
+----------------------------------------
+- 외래키 연결된 칼럼명 속성 변경
+
+co_num ai 추가
+
+1. 외래 키 연결 삭제
+alter table attend drop foreign key attend attend_ibfk_2;
+
+2. 칼럼명 변경
+alter table course modify co_num int not null;
+
+3. 다시 외래키 연결
+alter table attend add foreign key(at_co_num) reference
+course(co_num);
+
+-----------------------------------------------------------
+- attend at_mid, at_final, at_attend, at_hw
+40, 40, 10, 10
+
+
+
+UPDATE attend
+SET at_mid = 38, at_final = 39, at_attend = 10, at_hw = 10
+WHERE at_num IN (1, 5, 12, 18, 23);
+UPDATE attend
+SET at_mid = 35, at_final = 36, at_attend = 10, at_hw = 9
+WHERE at_num IN (3, 7, 14, 20, 25);
+UPDATE attend
+SET at_mid = 33, at_final = 34, at_attend = 9, at_hw = 10
+WHERE at_num IN (2, 9, 16, 22);
+UPDATE attend
+SET at_mid = 30, at_final = 32, at_attend = 9, at_hw = 8
+WHERE at_num IN (4, 10, 17, 24);
+UPDATE attend
+SET at_mid = 28, at_final = 30, at_attend = 10, at_hw = 7
+WHERE at_num IN (6, 13, 19, 26);
+UPDATE attend
+SET at_mid = 25, at_final = 27, at_attend = 8, at_hw = 7
+WHERE at_num IN (8, 15, 21, 27);
+UPDATE attend
+SET at_mid = 23, at_final = 25, at_attend = 9, at_hw = 6
+WHERE at_num IN (11, 28);
+UPDATE attend
+SET at_mid = 20, at_final = 22, at_attend = 7, at_hw = 6
+WHERE at_num IN (1, 9, 15);
+-- 출석이 매우 불량한 학생들 추가 (at_attend < 2)
+
+-- 출석 불량으로 인한 낮은 총점
+UPDATE attend
+SET at_mid = 15, at_final = 18, at_attend = 1, at_hw = 3
+WHERE at_num IN (5, 11);
+
+UPDATE attend
+SET at_mid = 12, at_final = 10, at_attend = 0, at_hw = 2
+WHERE at_num IN (19, 24);
+
+
+
+- at_score 채우기
+합계가 90이상 A, 80이상 B, 70이상 C, 60이상 D 나머지 F
+
+update attend
+set at_score = 
+(case
+when (at_mid + at_final + at_attend + at_hw)  >= 90 then 'A'
+when (at_mid + at_final + at_attend + at_hw)  >= 80 then 'B'
+when (at_mid + at_final + at_attend + at_hw)  >= 70 then 'C'
+when (at_mid + at_final + at_attend + at_hw)  >= 60 then 'D'
+else 'F'
+end
+);
+
+- at_pass (p/f)
+at_score가 A,B => p 나머지는 f
+
+update attend
+set at_pass = if(at_score = 'A' || at_score = 'B', 'p', 'f');
+
+-at_repetition
+at_score = F 출석이 2미만이면 y(재수강) / n
+
+update attend
+set at_repetition = if(at_score = 'F' || at_attend <= 2 , 'y', 'n');
