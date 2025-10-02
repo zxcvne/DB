@@ -601,25 +601,24 @@ WHERE at_num IN (19, 24);
 - at_score 채우기
 합계가 90이상 A, 80이상 B, 70이상 C, 60이상 D 나머지 F
 
-update attend
-set at_score = 
-(case
+update attend set at_score = 
+case
 when (at_mid + at_final + at_attend + at_hw)  >= 90 then 'A'
 when (at_mid + at_final + at_attend + at_hw)  >= 80 then 'B'
 when (at_mid + at_final + at_attend + at_hw)  >= 70 then 'C'
 when (at_mid + at_final + at_attend + at_hw)  >= 60 then 'D'
 else 'F'
-end
-);
+end;
 
 - at_pass (p/f)
 at_score가 A,B => p 나머지는 f
 
-update attend
-set at_pass = if(at_score = 'A' || at_score = 'B', 'p', 'f');
+update attend set at_pass = 
+if(at_score = 'A' || at_score = 'B', 'p', 'f');
 
 -at_repetition
 at_score = F 출석이 2미만이면 y(재수강) / n
 
-update attend
-set at_repetition = if(at_score = 'F' || at_attend <= 2 , 'y', 'n');
+update attend set at_repetition = 
+if(at_score = 'F' or at_attend <= 2 , 'y', 'n');
+

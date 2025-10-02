@@ -1,0 +1,444 @@
+Day6
+
+- 학점별 학생수 출력
+
+select at_score 학점, count(at_num) 학생수
+from attend
+group by at_score
+order by at_score;
+
+- 학점별 학생수 (co_year 2002 / co_term 1)
+1]
+select a.at_score 학점, count(a.at_num) 학생수
+from attend a
+join course c
+on c.co_num = a.at_co_num
+where c.co_year = 2002 and c.co_term = 1
+group by a.at_score
+order by a.at_score; 
+
+2]
+select a.at_score 학점, count(a.at_num) 학생수
+from attend a
+join (
+select co_num from course
+where co_year = 2002 and co_term = 1
+) c
+on c.co_num = a.at_co_num
+group by a.at_score
+order by a.at_score; 
+
+- 김영철 수강과목(1)
+대학수학(1)
+대학수학(2)
+
+select st.st_name 이름, 
+concat(su.su_title,'(',c.co_term,')') '과목(학기)'
+from subject su
+join course c on c.co_su_num = su.su_num
+join attend a on c.co_num = a.at_co_num
+join student st on st.st_num = a.at_st_num
+where st.st_name = '김영철';
+
+select st.st_name 이름, 
+concat(su.su_title,'(',c.co_term,')') '과목(학기)'
+from attend a
+join student st on a.at_st_num = st.st_num
+join course c on c.co_num = a.at_co_num
+join subject su on su.su_num = c.co_su_num
+where st.st_name = '김영철';
+---------------------------------------------------------
+index - 색인 페이지 역할을 함.
+
+- 테이블의 조회속도를 높여주는 역할을 함
+- 키 : primary key, foreign key => index의 일종
+- 조회속도는 빨라지지만, update, insert, delete 속도는 저하됨.
+- select 구문의 검색속도를 크게 향상 시킨다.
+- 인덱스 생성시 DB 크기의 약 10% 정도의 추가 공간이 필요함.
+- 인덱스 생성시 시간이 걸림.
+- insert, update, delete 데이터 변경이 잦은 경우
+paging이 빈번해져 성능이 악화될 수 있음.
+- 조회에서는 성능향상이 일어나지만 변경이 자주 일어나면 
+오히려 성능이 감소됨.
+- 하나의 칼럼 또는 여러개의 칼럼을 묶어 하나의 인덱스로 사용가능.
+
+- 생성구문
+테이블을 생성할 때 추가하는 방법
+create table 테이블명(
+칼럼 속성
+....
+primary key(칼럼명),
+key 인덱스명(칼럼),
+key 인덱스명(칼럼,칼럼),
+)
+
+ex) idx_name(st_name)
+
+alter table로 나중에 추가하는 방법
+alter table 테이블명 add index 인덱스명 (칼럼명);
+create index 인덱스명 on 테이블명(칼럼명);
+
+인덱스 보기
+show index from 테이블명;
+
+인덱스 삭제
+alter table 테이블명 drop index 인덱스명;
+
+------------------------------------------------------
+
+student테이블의 st_name index 추가
+
+create index idx_name on student(st_name);
+alter table student drop index idx_name;
+
+alter table student add index idx_name(st_name);
+
+----------------------------------------------------------------
+뷰 view
+- 데이터베이스에서 존재하는 가상테이블
+- 자주 조회하는 테이블의 값을 별도로 저장하는 기능
+- 실제 물리적으로 값을 저장하지는 않음(바로가기)
+- 보여주기만 가능 (insert, update, delete 불가능)
+- 뷰는 index 가질 수 없음.
+
+뷰 생성 구문
+create view 뷰명 as (
+select * ~ 
+);
+
+- 여러개의 테이블을 대상으로 뷰 생성 가능
+- join 가능
+- 그룹합수 가능
+- distinct 가능.
+
+create or replace view 뷰명 as(); // 같은 뷰가 있다면 날리고 다시 생성
+
+----------------------------------------------------------------
+뷰 생성 
+
+1학기 수업을 듣는 학생을 뷰로 생성
+1_term_view 
+학번, 이름, 조건 co_term = 1
+create or replace view 1_term_view as (
+select distinct s.st_num 학번, s.st_name 이름
+from student s
+join attend a on a.at_st_num = s.st_num
+join (select co_num from course
+where co_term = 1) c 
+on c.co_num=  a.at_co_num
+);
+
+--------------------------------------------------------------------
+show full tables; -- 테이블 타입도 같이 보여줌.
+
+drop view 뷰네임;
+-------------------------------------------------------------------------
+
+- A학점 학생 뷰 a_score_view
+- 학번, 이름, 과목, 학점
+create or replace view a_score_view as(
+select distinct s.st_num, s.st_name, su.su_title ,at_score
+from student s
+join (
+select at_st_num, at_co_num, at_score 
+from attend 
+where at_score = 'A'
+) a 
+on a.at_st_num = s.st_num
+join course c on c.co_num = a.at_co_num
+join subject su on su.su_num = c.co_su_num
+);
+
+- 재수강자 뷰 retake_view
+- 학번, 이름, 과목
+create or replace view retake_view as(
+select distinct s.st_num, s.st_name, su.su_title 
+from student s
+join (
+select at_st_num, at_co_num
+from attend where at_repetition = 'y'
+) a on a.at_st_num = s.st_num
+join course c on c.co_num = a.at_co_num
+join subject su on su.su_num = c.co_su_num
+);
+
+- 강길동 교수가 지도하는 학생 명단 gildong_view
+- 학번, 이름
+create or replace view gildong_view as(
+select distinct s.st_num, s.st_name
+from student s
+join guide g on g.gu_st_num = s.st_num
+join professor p on p.pr_num = g.gu_pr_num
+where pr_name = '강길동'
+);
+
+select * from a_score_view;
+select * from retake_view;
+select * from gildong_view;
+
+select * from student, course;
+-  각 항목 모두 1:1 대응으로 총 30개 값이 출력됨.
+
+-----------------------------------------------------------------
+
+trigger(연쇄반응) 
+// oracle 에서는 or replace가 가능, mysql은 drop해줘야 됨
+트리거 : 이벤트가 발생했을 때 자동으로 실행되는 구문
+이벤트가 발생되었을 경우 데이터의 일관성을 지켜야 할 때 사용
+- 한번 생성되면 수정X, 삭제하고 재생성 해야함.
+- 이벤트 발생 insert / update / delete 
+
+트리거 안쪽의 구문의 끝과 트리거의 전제 종료
+임시 끝 처리 기호 변경 => delimiter $ 
+구문의 끝 => ;
+delimiter : sql에서 구문의 끝을 다른 기호로 표시할 때 사용
+
+----------------------------------------------------------------
+shop db에서 사용
+
+- product 테이블의
+- amount(재고 수량) = 100
+- sale_amount(판매 수량) = 0
+
+update productselc
+set amount = 100, sale_amount = 0;
+
+- buy테이블에 값이 생성되면 (insert)
+- product테이블에 재고수량과 
+- 판매수량이 변동되는 트리거 생성
+
+트리거명 = 이벤트명_테이블명 (insert_buy)
+
+drop trigger if exists insert_buy;
+delimiter //
+create trigger insert_buy after insert on buy
+for each row
+begin
+
+declare _amount int default 0;
+set _amount = new.amount;
+
+-- product 테이블에서 insert된 new.amount 값 만큼
+-- amount - new.amount/ 
+-- sale_amount + new.amount
+
+update product set
+amount = amount - _amount,
+sale_amount = sale_amount +_amount
+where name = new.product_name;
+
+end //
+delimiter ;
+
+------------------------------------------------------------
+drop trigger if exists insert_buy;
+delimiter //
+create trigger insert_buy after insert on buy
+for each row
+begin
+
+declare _amount int default 0;
+set _amount = new.amount;
+
+-- product 테이블에서 insert된 new.amount 값 만큼
+-- amount - new.amount/ 
+-- sale_amount + new.amount
+
+update product set
+amount = amount - _amount,
+sale_amount = sale_amount +_amount
+where name = new.product_name;
+
+end //
+delimiter ;
+
+--------------------------------
+ERROR 1419 (HY000): You do not have the 
+SUPER privilege and binary logging is enabled
+(you *might* want to use the less safe 
+log_bin_trust_function_creators variable)
+
+- root 계정으로 접속하여 
+set global log_bin_trust_function_creators='ON';
+
+show triggers
+
+insert into buy(customer, product_name, price, amount)
+values
+('짱구','폴라 티셔츠', 15000, 20);
+
+insert into buy(customer, product_name, price, amount)
+values
+('짱아','나시', 5000, 10);
+
+ERROR 1442 (HY000): 
+Can't update table 'product' in stored 
+function/trigger because it is already used by 
+statement which invoked this stored function/trigger.
+
+-- insert into buy(customer, product_name, price, amount)
+-- select '짱아',name, price, 10 from product where num = 13;
+
+--------------------------------------------------------------------
+
+buy 테이블에 삭제가 일어나면
+product 테이블의 amount, sale_mount를 조정
+트리거 작성
+
+new : insert, update
+old : delete, update
+
+drop trigger if exists delete_buy;
+delimiter //
+create trigger delete_buy after delete on buy
+for each row
+begin
+
+update product set
+amount = amount + old.amount,
+sale_amount = sale_amount - old.amount
+where name = old.product_name;
+
+end //
+delimiter ;
+
+delete from buy
+where customer = '짱아';
+
+- buy 테이블에 업데이트가 일어나면 amount 값을 변경하는 트리거
+
+drop trigger if exists update_buy;
+delimiter //
+create trigger update_buy after update on buy
+for each row
+begin
+
+declare _amount int default 0;
+set _amount = new.amount - old.amount;
+
+update product set
+amount = amount - _amount, 
+sale_amount = sale_amount +_amount
+where name = old.product_name;
+
+end //
+delimiter ;
+
+update buy set amount=30
+where num = 29; 
+
+---------------------------------------------------------------
+school DB에서 처리
+
+- course 테이블에 해당과목을 수강하는 인원을 집계하는 칼럼을 
+생성
+co_degree int default 0
+
+alter table course add co_degree int default 0
+
+- co_degree 칼럼에 해당 코스를 수강하는 학생을 집계하여 업데이트
+
+select count(at_co_code) from attend
+group by at_co_code;
+
+update course set co_degree = coalesce(( 
+select count(at_co_code) from attend
+where co_code = at_co_code
+group by at_co_code
+), 0);
+
+- 인자로 주어진 칼럼들 중 null이 아닌 경우의 값을 리턴
+coalesce(값, 0)
+nvl
+
+- attend에 수강신청을 하면 해당 과목의 course의 
+co_degree가 자동으로 증가하는 트리거 생성
+insert 되는 at_co_code의 co_degree 값을 + 1
+new : insert되는 대상의 데이터
+
+
+
+drop trigger if exists insert_attend;
+delimiter //
+create trigger insert_attend after insert on attend
+for each row
+begin
+
+update course set 
+co_degree = co_degree + 1
+where co_code = new.at_co_code;
+
+end //
+delimiter ;
+
+insert into attend(at_std_num, at_co_code) values
+('2020160001','2020msc001');
+insert into attend(at_std_num, at_co_code) values
+('2020160001','2020msc001'),
+('2020160002','2020msc001'),
+('2023160002','2021deg001');
+
+delete from attend
+where at_year is null;
+
+drop trigger if exists delete_attend;
+delimiter //
+create trigger delete_attend after delete on attend
+for each row
+begin
+
+update course set 
+co_degree = co_degree - 1
+where co_code = old.at_co_code;
+
+end //
+delimiter ;
+
+delete from attend 
+where at_num = 23;
+
+- attend의 값이 수정되면 (수강과목을 바꾸면)
+co_degree의 집계를 수정하는 트리거 생성
+
+drop trigger if exists update_attend;
+delimiter //
+create trigger update_attend after update on attend
+for each row
+begin
+
+-- 원래 있던 값의 인원수 -1
+-- 변경 되는 값의 인원수 +1
+
+update course set 
+co_degree = co_degree - 1
+where co_code = old.at_co_code;
+
+update course set 
+co_degree = co_degree + 1
+where co_code = new.at_co_code;
+
+end //
+delimiter ;
+-- delimiter와 ; 사이에 반드시 공백이 있어야 함
+
+drop trigger if exists update_attend;
+delimiter //
+create trigger update_attend after update on attend
+for each row
+begin
+
+update course set co_degree = (
+case
+when co_code = old.at_co_code then co_degree - 1
+when co_code = new.at_co_code then co_degree + 1
+else co_degree
+end
+);
+
+end //
+delimiter ;
+
+update attend
+set at_co_code = 
+'2023ipc004'
+where at_num in(7);
